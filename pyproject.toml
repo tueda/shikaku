@@ -3,7 +3,14 @@ name = "shikaku"
 version = "0.0.1"
 description = "Toolbox for Japanese text."
 authors = ["Takahiro Ueda <t.ueda.od@juntendo.ac.jp>"]
+license = "MIT"
 readme = "README.md"
+repository = "https://github.com/tueda/shikaku"
+keywords = ["japanese", "text-generation", "markov-chain", "word-cloud"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Topic :: Text Processing :: Linguistic",
+]
 
 [tool.poetry.dependencies]
 python = "^3.10"
