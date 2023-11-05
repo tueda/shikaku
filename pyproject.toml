@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "shikaku"
-version = "0.0.1"
+version = "0.0.1a"
 description = "Toolbox for Japanese text."
 authors = ["Takahiro Ueda <t.ueda.od@juntendo.ac.jp>"]
 license = "MIT"
