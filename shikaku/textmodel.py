@@ -48,7 +48,9 @@ class TextModel:
         text = tagger.parse(text)
 
         # Build a model.
-        model = markovify.Text(text.split("."), state_size=self._state_size)
+        model = markovify.Text(
+            text.split("."), state_size=self._state_size, well_formed=False
+        )
 
         self._model = model
         self._compiled_model = None
