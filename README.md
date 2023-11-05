@@ -1,5 +1,8 @@
 # Shikaku (詩客)
 
+[![Test](https://github.com/tueda/shikaku/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/tueda/shikaku/actions/workflows/test.yml?query=branch%3Amain)
+[![PyPI version](https://badge.fury.io/py/shikaku.svg)](https://pypi.org/project/shikaku/)
+
 Toolbox for Japanese text.
 
 ## Example
