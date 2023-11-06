@@ -81,6 +81,9 @@ addopts = [
     "--cov=shikaku",
     "--doctest-modules",
 ]
+filterwarnings = [
+    "ignore:distutils Version classes are deprecated",
+]
 
 [tool.taskipy.tasks]
 prepare.cmd = "pre-commit install"

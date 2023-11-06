@@ -26,7 +26,31 @@ def _download(url: str) -> bytes:
         return f.read()  # type: ignore[no-any-return]
 
 
-def load_aozorabunko(author_id: int, work_id: int) -> str:
+def _remove_annotations(text: str) -> str:
+    """
+    Remove annotations in the text.
+
+    Parameters
+    ----------
+    text : str
+        Input text.
+
+    Returns
+    -------
+    str
+        Processed text.
+
+    """
+    text = re.split(r"\-{5,}", text)[2]  # remove header
+    text = re.split("底本：", text)[0]  # remove footer
+    text = re.sub("｜", "", text)  # beginning of string with ruby
+    text = re.sub("《.+?》", "", text)  # ruby
+    text = re.sub("［＃.+?］", "", text)  # comments by staff
+    text = text.strip()
+    return text
+
+
+def load_aozorabunko(author_id: int, work_id: int, *, raw: bool = False) -> str:
     """
     Return text downloaded from Aozora Bunko (GitHub mirror).
 
@@ -36,6 +60,8 @@ def load_aozorabunko(author_id: int, work_id: int) -> str:
         Author ID.
     work_id : int
         Work ID.
+    raw : bool, default False
+        Whether it returns a raw text or not.
 
     Returns
     -------
@@ -76,12 +102,7 @@ def load_aozorabunko(author_id: int, work_id: int) -> str:
     filename = zipdata.namelist()[0]
     text = zipdata.read(filename).decode("shift-jis")
 
-    # Remove annotations in the text.
-    text = re.split(r"\-{5,}", text)[2]  # remove header
-    text = re.split("底本：", text)[0]  # remove footer
-    text = re.sub("｜", "", text)  # beginning of string with ruby
-    text = re.sub("《.+?》", "", text)  # ruby
-    text = re.sub("［＃.+?］", "", text)  # comments by staff
-    text = text.strip()
+    if not raw:
+        text = _remove_annotations(text)
 
     return text
