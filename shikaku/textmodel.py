@@ -12,6 +12,92 @@ import MeCab
 from markovify.chain import BEGIN, END
 
 
+def _preprocess_text(text: str) -> list[str]:
+    """
+    Preprocess the text.
+
+    Parameters
+    ----------
+    text : str
+        Input text.
+
+    Returns
+    -------
+    list[str]
+        Sentences.
+
+    """
+    tagger = MeCab.Tagger("-Owakati")
+
+    result = []
+
+    for line in text.splitlines():
+        line = line.strip()
+        line = line.lstrip("　")
+        if not line:
+            continue
+
+        # Handle brackets.
+        if any(c in line for c in "「」（）"):
+            while True:
+                # "「...」" -> "..."
+                if (
+                    line[:1] == "「"
+                    and line[-1:] == "」"
+                    and "「" not in line[1:-1]
+                    and "」" not in line[1:-1]
+                ):
+                    line = line[1:-1].strip()
+                    continue
+                # "...「...」" -> "......"
+                line1 = re.sub("「([^「」]+)」$", r"\g<1>", line)
+                if line1 != line:
+                    line = line1.strip()
+                    continue
+                # "（...）" -> "..."
+                if (
+                    line[:1] == "（"
+                    and line[-1:] == "）"
+                    and "（" not in line[1:-1]
+                    and "）" not in line[1:-1]
+                ):
+                    line = line[1:-1].strip()
+                    continue
+                break
+            # Remove possibly incomplete sentences,
+            # "...「...」...。..." -> "..."
+            while True:
+                line1 = re.sub("^[^「」]*「[^「」]*」[^「」。！？!?]*[。！？!?]+", "", line)
+                if line1 != line:
+                    line = line1.strip()
+                    continue
+                break
+            # Check if brackets are still there.
+            # It possibly contains incomplete sentences.
+            # TODO: case of "「noun」".
+            if any(c in line for c in "「」（）"):
+                continue
+
+        if not line:
+            continue
+
+        # Remove incomplete sentences.
+        line = re.sub("[^。！？!?]+$", "", line)
+
+        if not line:
+            continue
+
+        line = re.sub("[。！？!?]+", r"\g<0>.", line)
+        line = re.sub(r"。+\.", ".", line)
+        line = tagger.parse(line).rstrip()
+        line = re.sub(r"\s+\.", ".", line)
+        result += line.split(".")
+
+    result = [x.strip() for x in result if x]
+    result = [x for x in result if x]
+    return result
+
+
 class TextModel:
     """Text generation model by Markov chain."""
 
@@ -39,15 +125,9 @@ class TextModel:
             Text for training.
 
         """
-        # Normalize sentence endings.
-        text = re.sub("[！？。]", r"\g<0>.", text)
-        # Split the text into words.
-        tagger = MeCab.Tagger("-Owakati")
-        text = tagger.parse(text)
-
         # Build a model.
         model = markovify.Text(
-            text.split("."), state_size=self._state_size, well_formed=False
+            _preprocess_text(text), state_size=self._state_size, well_formed=False
         )
 
         self._model = model
@@ -115,6 +195,9 @@ class TextModel:
             s = m.make_sentence(**args)
         else:
             s = m.make_sentence_with_start(**args)
+        if s:
+            if s[-1:] not in "。！？!?":
+                s += "。"
         return s  # type: ignore[no-any-return]
 
     def plot(
