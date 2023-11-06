@@ -1,16 +1,14 @@
 """Markov chain model."""
 
+import random
 import re
-from functools import cache
 from typing import Any, Optional
 
+import igraph as ig
 import markovify
 import matplotlib.axes
 import matplotlib.pyplot as plt
 import MeCab
-import networkx as nx
-import numpy as np
-from japanize_matplotlib.japanize_matplotlib import FONT_NAME
 from markovify.chain import BEGIN, END
 
 
@@ -119,7 +117,8 @@ class TextModel:
         width: Optional[float] = None,
         height: Optional[float] = None,
         dpi: Optional[int] = None,
-        iterations: Optional[int] = None,
+        layout: Optional[str] = None,
+        seed: Optional[int] = None,
     ) -> matplotlib.axes.Axes:
         """
         Plot the model.
@@ -132,8 +131,10 @@ class TextModel:
             Height of the figure.
         dpi: int, optional
             Resolution of the figure.
-        iterations : int, optional
-            Maximum number of iterations to fix the layout.
+        layout: str, optional
+            Layout of the graph.
+        seed : int, optional
+            Random seed.
 
         Returns
         -------
@@ -145,20 +146,22 @@ class TextModel:
             raise ValueError("model is not yet trained")
 
         if width is None:
-            width = 7.5
+            width = 10
         if height is None:
             height = width
-        if iterations is None:
-            iterations = 200
 
-        g = nx.DiGraph()
+        if seed is not None:
+            random.seed(seed)
+
         m = self._model.chain.model
         n = self._model.state_size
         beginning_state = (BEGIN,) * n
         endding_state = (END,)
-        visited = set()
 
-        @cache
+        vertices: dict[tuple[str, ...], int] = {}
+        edges = []
+        weights = []
+
         def get_state_name(state: tuple[str, ...]) -> str:
             if all(x == BEGIN for x in state):
                 return "BEGIN"
@@ -170,11 +173,9 @@ class TextModel:
             return ",".join(s)
 
         def traverse(state: tuple[str, ...]) -> None:
-            if state in visited:
+            if state in vertices:
                 return
-            visited.add(state)
-
-            g.add_node(get_state_name(state))
+            vertices[state] = len(vertices)
 
             if state not in m:
                 return
@@ -187,33 +188,28 @@ class TextModel:
                 else:
                     next_state = state[1:] + (next_word,)  # type: ignore[assignment]
                 traverse(next_state)
-                g.add_edge(
-                    get_state_name(state),
-                    get_state_name(next_state),
-                    probability=weight / total_weight,
-                )
+                edges.append((vertices[state], vertices[next_state]))
+                weights.append(weight / total_weight)
 
         traverse(beginning_state)
 
-        pos = nx.spectral_layout(g)
-        pos = nx.spring_layout(
-            g,
-            pos=pos,
-            iterations=iterations,
-        )
-
-        if pos["BEGIN"][0] > pos["END"][0]:
-            pos = {a: np.array((-x, y)) for a, (x, y) in pos.items()}
-        if pos["BEGIN"][1] < pos["END"][1]:
-            pos = {a: np.array((x, -y)) for a, (x, y) in pos.items()}
-
         _, ax = plt.subplots(figsize=(width, height), dpi=dpi)
-        nx.draw_networkx(g, pos=pos, ax=ax, font_family=FONT_NAME)
-        nx.draw_networkx_edge_labels(
+
+        g = ig.Graph(len(vertices), edges, directed=True)
+        ig.plot(
             g,
-            pos=pos,
-            edge_labels={
-                (u, v): f'{d["probability"]:.02f}' for u, v, d in g.edges(data=True)
-            },
+            target=ax,
+            layout=layout,
+            vertex_label=[get_state_name(x) for x in vertices],
+            vertex_color="#f99",
+            vertex_frame_color="#999",
+            edge_label=[f"{x:.02f}" for x in weights],
+            edge_color="#999",
+            edge_label_color="#33f",
+            edge_width=0.5,
+            edge_arrow_width=10,
+            edge_arrow_size=10,
+            edge_align_label=True,
         )
+
         return ax
