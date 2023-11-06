@@ -61,6 +61,7 @@ class TextModel:
         tries: Optional[int] = None,
         min_words: Optional[int] = None,
         max_words: Optional[int] = None,
+        seed: Optional[int] = None,
     ) -> Optional[str]:
         """
         Generate a sentence.
@@ -77,6 +78,8 @@ class TextModel:
             Minimum number of words.
         max_words : int, optional
             Maximum number of words.
+        seed : int, optional
+            Random seed.
 
         Returns
         -------
@@ -86,6 +89,9 @@ class TextModel:
         """
         if self._model is None:
             raise ValueError("model is not yet trained")
+
+        if seed is not None:
+            random.seed(seed)
 
         if self._compiled_model is None:
             self._compiled_model = self._model.compile()

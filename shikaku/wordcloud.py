@@ -81,14 +81,14 @@ class WordCloud:
         self._height = height
         self._background_color = background_color
         self._words: Optional[str] = None
-        self._result: Optional[wordcloud.WordCloud] = None
 
-    def _create(self) -> wordcloud.WordCloud:
+    def _create(self, seed: Optional[int]) -> wordcloud.WordCloud:
         return wordcloud.WordCloud(
             font_path=japanize_matplotlib.get_font_ttf_path(),
             width=self._width,
             height=self._height,
             background_color=self._background_color,
+            random_state=seed,
         )
 
     def fit(self, text: str) -> None:
@@ -102,14 +102,20 @@ class WordCloud:
 
         """
         text = _get_words(text)
-        wc = self._create()
-        words = wc.process_text(text)
-        self._result = wc.generate_from_frequencies(words)
-        self._words = words
+        wc = self._create(1)
+        self._words = wc.process_text(text)
 
-    def generate(self) -> WordCloudResult:
+    def generate(
+        self,
+        seed: Optional[int] = None,
+    ) -> WordCloudResult:
         """
         Generate a word cloud.
+
+        Parameters
+        ----------
+        seed : int, optional
+            Random seed.
 
         Returns
         -------
@@ -120,10 +126,6 @@ class WordCloud:
         if self._words is None:
             raise ValueError("model is not yet trained")
 
-        if self._result:
-            result = self._result
-            self._result = None
-        else:
-            wc = self._create()
-            result = wc.generate_from_frequencies(self._words)
+        wc = self._create(seed)
+        result = wc.generate_from_frequencies(self._words)
         return WordCloudResult(result)
