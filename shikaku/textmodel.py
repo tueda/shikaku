@@ -245,7 +245,7 @@ class TextModel:
         m = self._model.chain.model
         n = self._model.state_size
         beginning_state = (BEGIN,) * n
-        endding_state = (END,)
+        ending_state = (END,)
 
         vertices: dict[tuple[str, ...], int] = {}
         edges = []
@@ -273,7 +273,7 @@ class TextModel:
 
             for next_word, weight in m[state].items():
                 if next_word == END:
-                    next_state = endding_state
+                    next_state = ending_state
                 else:
                     next_state = state[1:] + (next_word,)  # type: ignore[assignment]
                 traverse(next_state)
