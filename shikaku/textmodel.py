@@ -2,6 +2,7 @@
 
 import random
 import re
+import types
 from typing import Any, Optional
 
 import igraph as ig
@@ -98,6 +99,24 @@ def _preprocess_text(text: str) -> list[str]:
     return result
 
 
+def _custom_word_split(self: "TextModel", sentence: str) -> list[str]:
+    tagger = MeCab.Tagger("-Owakati")
+    words = tagger.parse(sentence.rstrip("。")).rstrip().split(" ")
+    return words  # type: ignore[no-any-return]
+
+
+def _custom_word_join(self: "TextModel", words: list[str]) -> str:
+    sentence = "".join(words)
+    if sentence and sentence[-1] not in "。！？!?":
+        sentence = sentence + "。"
+    return sentence
+
+
+def _do_monkey_patch(model: markovify.Text) -> None:
+    model.word_split = types.MethodType(_custom_word_split, model)
+    model.word_join = types.MethodType(_custom_word_join, model)
+
+
 class TextModel:
     """Text generation model by Markov chain."""
 
@@ -175,8 +194,7 @@ class TextModel:
 
         if self._compiled_model is None:
             self._compiled_model = self._model.compile()
-            # Monkey patch to generate Japanese sentences.
-            self._compiled_model.word_join = lambda words: "".join(words)
+            _do_monkey_patch(self._compiled_model)
 
         args: dict[str, Any] = {}
         if beginning is not None:
@@ -195,9 +213,6 @@ class TextModel:
             s = m.make_sentence(**args)
         else:
             s = m.make_sentence_with_start(**args)
-        if s:
-            if s[-1:] not in "。！？!?":
-                s += "。"
         return s  # type: ignore[no-any-return]
 
     def plot(

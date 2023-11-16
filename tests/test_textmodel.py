@@ -22,3 +22,11 @@ def test_preprocess_text() -> None:
 狼 だ
 """.strip().splitlines()
     assert shikaku.textmodel._preprocess_text(s) == r
+
+
+def test_generate() -> None:
+    model = shikaku.textmodel.TextModel(state_size=2)
+    model.fit("これはペンです。")
+    assert model.generate() == "これはペンです。"
+    assert model.generate(beginning="これ") == "これはペンです。"
+    assert model.generate(beginning="これは") == "これはペンです。"
