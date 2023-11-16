@@ -39,6 +39,13 @@ def _preprocess_text(text: str) -> list[str]:
 
         # Handle brackets.
         if any(c in line for c in "「」（）"):
+            # Escape "「noun」".
+            line = re.sub(
+                "「([^「」。！？!?]+)」",
+                r"__LEFT_CORNER_BRACKET__\g<1>__RIGHT_CORNER_BRACKET__",
+                line,
+            )
+
             while True:
                 # "「...」" -> "..."
                 if (
@@ -65,18 +72,23 @@ def _preprocess_text(text: str) -> list[str]:
                     continue
                 break
             # Remove possibly incomplete sentences,
-            # "...「...」...。..." -> "..."
+            # "***「***」***。..." -> "..."
             while True:
-                line1 = re.sub("^[^「」]*「[^「」]*」[^「」。！？!?]*[。！？!?]+", "", line)
+                line1 = re.sub(
+                    "(^|[。！？!?])[^「」。！？!?]*「[^「」]*」[^「」。！？!?]*[。！？!?]+", r"\g<1>", line
+                )
                 if line1 != line:
                     line = line1.strip()
                     continue
                 break
             # Check if brackets are still there.
             # It possibly contains incomplete sentences.
-            # TODO: case of "「noun」".
             if any(c in line for c in "「」（）"):
                 continue
+
+            # Unescape brackets.
+            line = line.replace("__LEFT_CORNER_BRACKET__", "「")
+            line = line.replace("__RIGHT_CORNER_BRACKET__", "」")
 
         if not line:
             continue
