@@ -84,7 +84,10 @@ def load_aozorabunko(author_id: int, work_id: int, *, raw: bool = False) -> str:
     # Search for the ZIP file with ruby text from the library card.
     m = re.search(r"\d+_ruby_\d+\.zip", card)
     if not m:
-        raise ValueError(f"card not found: {card_file}")
+        # Fallback to the ZIP file without ruby text.
+        m = re.search(r"\d+_txt_\d+\.zip", card)
+        if not m:
+            raise ValueError(f"card not found: {card_file}")
     zipname = m.group(0)
 
     # Download the ZIP file.
