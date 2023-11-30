@@ -1,5 +1,15 @@
 # Changelog
 
+<a name="0.2.1"></a>
+## [0.2.1] (2023-11-29)
+
+### Fixed
+
+- `load_aozorabunko()` did not work for files without ruby text.
+  ([#2](https://github.com/tueda/shikaku/issues/2))
+- `beginning` option of `TextModel.generate()` did not work with more than one words.
+  ([e3b9b50](https://github.com/tueda/shikaku/commit/e3b9b505397cda189c3ad557960179d58ba09c43))
+
 <a name="0.2.0"></a>
 ## [0.2.0] (2023-11-07)
 
@@ -34,4 +44,5 @@
 - First release.
 
 
+[0.2.1]: https://github.com/tueda/shikaku/compare/0.2.0...0.2.1
 [0.2.0]: https://github.com/tueda/shikaku/compare/0.1.0.post1...0.2.0
