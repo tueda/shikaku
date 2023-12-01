@@ -3,6 +3,7 @@ import functools
 import io
 import re
 import urllib.request
+import warnings
 import zipfile
 
 
@@ -50,6 +51,14 @@ def _remove_annotations(text: str) -> str:
     return text
 
 
+class AozoraBunkoFileError(ValueError):
+    """Error raised for unexpected format in files on Aozora Bunko."""
+
+
+class AozoraBunkoFileWarning(Warning):
+    """Warning raised for unexpected format in files on Aozora Bunko."""
+
+
 def load_aozorabunko(author_id: int, work_id: int, *, raw: bool = False) -> str:
     """
     Return text downloaded from Aozora Bunko (GitHub mirror).
@@ -87,7 +96,7 @@ def load_aozorabunko(author_id: int, work_id: int, *, raw: bool = False) -> str:
         # Fallback to the ZIP file without ruby text.
         m = re.search(r"\d+_txt_\d+\.zip", card)
         if not m:
-            raise ValueError(f"card not found: {card_file}")
+            raise AozoraBunkoFileError(f"ZIP file not detected in {card_file}")
     zipname = m.group(0)
 
     # Download the ZIP file.
@@ -101,8 +110,19 @@ def load_aozorabunko(author_id: int, work_id: int, *, raw: bool = False) -> str:
         )
     )
 
+    # Find text files in the ZIP file.
+    text_filenames = [s for s in zipdata.namelist() if s.lower().endswith(".txt")]
+    if not text_filenames:
+        raise AozoraBunkoFileError(f"text file not found in {zipname}")
+    if len(text_filenames) >= 2:
+        warnings.warn(
+            f"more than one text files found: {text_filenames}. Take the first one",
+            AozoraBunkoFileWarning,
+            stacklevel=2,
+        )
+    filename = text_filenames[0]
+
     # Extract text from the ZIP file.
-    filename = zipdata.namelist()[0]
     text = zipdata.read(filename).decode("shift-jis")
 
     if not raw:
