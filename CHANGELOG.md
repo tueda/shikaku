@@ -1,5 +1,19 @@
 # Changelog
 
+<a name="0.2.2"></a>
+## [0.2.2] (2023-12-02)
+
+### Changed
+
+- `load_aozorabunko()` raises `AozoraBunkoFileError` instead of `ValueError`
+  when no ZIP file name is found in card files.
+  ([a9f3848](https://github.com/tueda/shikaku/commit/a9f3848ed4da2e1ed02cb6b174d70e214fa530d5))
+
+### Fixed
+
+- `load_aozorabunko()` failed to load book files with images attached.
+  ([#3](https://github.com/tueda/shikaku/issues/3))
+
 <a name="0.2.1"></a>
 ## [0.2.1] (2023-11-29)
 
@@ -44,5 +58,6 @@
 - First release.
 
 
+[0.2.2]: https://github.com/tueda/shikaku/compare/0.2.1...0.2.2
 [0.2.1]: https://github.com/tueda/shikaku/compare/0.2.0...0.2.1
 [0.2.0]: https://github.com/tueda/shikaku/compare/0.1.0.post1...0.2.0
