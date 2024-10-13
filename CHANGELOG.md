@@ -1,5 +1,19 @@
 # Changelog
 
+
+<a name="0.2.3"></a>
+## [0.2.3] (2024-10-13)
+
+- Support Python 3.12.
+
+### Changed
+
+- Replace [`japanize-matplotlib`](https://github.com/uehara1414/japanize-matplotlib)
+  with [`matplotlib-fontja`](https://github.com/ciffelia/matplotlib-fontja).
+  The former does not work with Python 3.12, while the latter is a fork that addresses this issue.
+  ([42f35ba](https://github.com/tueda/shikaku/commit/42f35bab177c6bde637e7d7fee351a15dc4d78b3))
+
+
 <a name="0.2.2"></a>
 ## [0.2.2] (2023-12-02)
 
@@ -14,6 +28,7 @@
 - `load_aozorabunko()` failed to load book files with images attached.
   ([#3](https://github.com/tueda/shikaku/issues/3))
 
+
 <a name="0.2.1"></a>
 ## [0.2.1] (2023-11-29)
 
@@ -23,6 +38,7 @@
   ([#2](https://github.com/tueda/shikaku/issues/2))
 - `beginning` option of `TextModel.generate()` did not work with more than one words.
   ([e3b9b50](https://github.com/tueda/shikaku/commit/e3b9b505397cda189c3ad557960179d58ba09c43))
+
 
 <a name="0.2.0"></a>
 ## [0.2.0] (2023-11-07)
@@ -58,6 +74,7 @@
 - First release.
 
 
+[0.2.3]: https://github.com/tueda/shikaku/compare/0.2.2...0.2.3
 [0.2.2]: https://github.com/tueda/shikaku/compare/0.2.1...0.2.2
 [0.2.1]: https://github.com/tueda/shikaku/compare/0.2.0...0.2.1
 [0.2.0]: https://github.com/tueda/shikaku/compare/0.1.0.post1...0.2.0
