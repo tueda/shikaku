@@ -3,7 +3,7 @@
 from dataclasses import dataclass
 from typing import Any, Optional
 
-import japanize_matplotlib
+import matplotlib_fontja
 import MeCab
 import PIL.Image
 import wordcloud
@@ -84,7 +84,7 @@ class WordCloud:
 
     def _create(self, seed: Optional[int]) -> wordcloud.WordCloud:
         return wordcloud.WordCloud(
-            font_path=japanize_matplotlib.get_font_ttf_path(),
+            font_path=matplotlib_fontja.get_font_ttf_path(),
             width=self._width,
             height=self._height,
             background_color=self._background_color,
