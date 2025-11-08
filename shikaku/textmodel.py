@@ -68,7 +68,9 @@ def _preprocess_text(text: str) -> list[str]:
             # Remove possibly incomplete sentences,
             # "...「...」...。..." -> "..."
             while True:
-                line1 = re.sub("^[^「」]*「[^「」]*」[^「」。！？!?]*[。！？!?]+", "", line)
+                line1 = re.sub(
+                    "^[^「」]*「[^「」]*」[^「」。！？!?]*[。！？!?]+", "", line
+                )
                 if line1 != line:
                     line = line1.strip()
                     continue
@@ -290,7 +292,7 @@ class TextModel:
                 if next_word == END:
                     next_state = ending_state
                 else:
-                    next_state = state[1:] + (next_word,)  # type: ignore[assignment]
+                    next_state = state[1:] + (next_word,)
                 traverse(next_state)
                 edges.append((vertices[state], vertices[next_state]))
                 weights.append(weight / total_weight)
