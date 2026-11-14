@@ -84,12 +84,20 @@ def load_aozorabunko(author_id: int, work_id: int, *, raw: bool = False) -> str:
     ... # author_id: 35, work_id: 1567 => "Run, Melos!"
 
     """
+    text = _extract_from_zip(author_id, work_id)
+
+    if not raw:
+        text = _remove_annotations(text)
+
+    return text
+
+
+def _extract_from_zip(
+    author_id: int, work_id: int, prefix="https://www.aozora.gr.jp/"
+) -> str:
     # Download the corresponding library card.
     card_file = f"{author_id:0=6}/card{work_id}.html"
-    card = _download(
-        "https://raw.githubusercontent.com/aozorabunko/aozorabunko/master/cards/"
-        f"{card_file}"
-    ).decode("utf-8")
+    card = _download(f"{prefix}/cards/{card_file}").decode("utf-8")
 
     # Search for the ZIP file with ruby text from the library card.
     m = re.search(r"\d+_ruby_\d+\.zip", card)
@@ -102,13 +110,7 @@ def load_aozorabunko(author_id: int, work_id: int, *, raw: bool = False) -> str:
 
     # Download the ZIP file.
     zipdata = zipfile.ZipFile(
-        io.BytesIO(
-            _download(
-                "https://raw.githubusercontent.com/"
-                "aozorabunko/aozorabunko/master/cards/"
-                f"{author_id:0=6}/files/{zipname}"
-            )
-        )
+        io.BytesIO(_download(f"{prefix}/cards/{author_id:0=6}/files/{zipname}"))
     )
 
     # Find text files in the ZIP file.
@@ -124,9 +126,12 @@ def load_aozorabunko(author_id: int, work_id: int, *, raw: bool = False) -> str:
     filename = text_filenames[0]
 
     # Extract text from the ZIP file.
-    text = zipdata.read(filename).decode("shift-jis")
+    return zipdata.read(filename).decode("shift-jis")
 
-    if not raw:
-        text = _remove_annotations(text)
 
-    return text
+def _extract_from_text(
+    author_id: int,
+    work_id: int,
+    prefix="https://raw.githubusercontent.com/aozorahack/aozorabunko_text/refs/heads/master/",
+) -> str:
+    pass
