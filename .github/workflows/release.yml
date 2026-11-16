@@ -5,14 +5,12 @@ on:
   pull_request:
   workflow_dispatch:
 
-permissions:
-  contents: read
-
 jobs:
   release:
     runs-on: ubuntu-latest
     environment: ${{ github.ref_type == 'tag' && 'release' || '' }}
     permissions:
+      contents: read
       id-token: write
     steps:
       - name: Checkout the repository
