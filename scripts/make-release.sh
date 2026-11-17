@@ -47,26 +47,17 @@ function pre_version_message() {
 
 # get_current_version: prints the current version.
 function get_current_version() {
-  poetry version -s
+  uv version --short
 }
 
 # get_next_version <current_version_number>: prints the next version.
 function get_next_version() {
-  local next_version
-  poetry version patch >/dev/null
-  next_version=$(poetry version -s)
-  git restore pyproject.toml
-  echo "$next_version"
+  uv version --short --dry-run --bump stable
 }
 
 # get_next_dev_version <current_version_number> <next_version_number>: prints the next dev-version.
 function get_next_dev_version() {
-  local next_dev_version
-  poetry version "$2" >/dev/null
-  poetry version prepatch >/dev/null
-  next_dev_version=$(poetry version -s)
-  git restore pyproject.toml
-  echo "$next_dev_version"
+  uv version --short --dry-run --bump patch --bump alpha
 }
 
 # version_bump <version_number>: a hook function to bump the version for documents.
@@ -76,7 +67,7 @@ function version_bump() {
 
 # dev_version_bump <dev_version_number>: a hook function to bump the version for code.
 function dev_version_bump() {
-  poetry version "$1"
+  uv version "$1"
 }
 
 ##
