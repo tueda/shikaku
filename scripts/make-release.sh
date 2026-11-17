@@ -57,7 +57,11 @@ function get_next_version() {
 
 # get_next_dev_version <current_version_number> <next_version_number>: prints the next dev-version.
 function get_next_dev_version() {
-  uv version --short --dry-run --bump patch --bump alpha
+  if [[ $2 == *rc* || $2 == *post* ]]; then
+    uv version --short --dry-run --bump alpha
+  else
+    uv version --short --dry-run --bump patch --bump alpha
+  fi
 }
 
 # version_bump <version_number>: a hook function to bump the version for documents.
