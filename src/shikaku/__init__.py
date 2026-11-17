@@ -7,8 +7,8 @@ from .utils import parse
 from .wordcloud import WordCloud
 
 __all__ = (
-    "load_aozorabunko",
-    "parse",
     "TextModel",
     "WordCloud",
+    "load_aozorabunko",
+    "parse",
 )
