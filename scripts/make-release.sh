@@ -1,168 +1,229 @@
 #!/bin/bash
 #
-# Make a release tag.
+# Create a new release.
 #
 # Usage:
 #   make-release.sh
 #   make-release.sh NEW-VERSION
 #   make-release.sh NEW-VERSION NEW-DEV-VERSION
+#
+# Project-independent script core version: 2026.11.20
+#
+set -euo pipefail
+shopt -s inherit_errexit
 
-set -eu
-set -o pipefail
-
-# Trap ERR to print the stack trace when a command fails.
-# See: https://gist.github.com/ahendrix/7030300
-function _errexit() {
-  local err=$?
-  set +o xtrace
-  local code="${1:-1}"
-  echo "Error in ${BASH_SOURCE[1]}:${BASH_LINENO[0]}: '${BASH_COMMAND}' exited with status $err" >&2
-  # Print out the stack trace described by $FUNCNAME
-  if [ ${#FUNCNAME[@]} -gt 2 ]; then
-    echo 'Traceback:' >&2
-    for ((i=1;i<${#FUNCNAME[@]}-1;i++)); do
-      echo "  [$i]: at ${BASH_SOURCE[$i+1]}:${BASH_LINENO[$i]} in function ${FUNCNAME[$i]}" >&2
-    done
-  fi
-  echo "Exiting with status ${code}" >&2
-  exit "${code}"
-}
-trap '_errexit' ERR
-set -o errtrace
-
-##
+### Project-specific configuration ###
 
 # Tag prefix.
 v=''
 
 # pre_version_message <current_version_number> <version_number> <dev_version_number>:
-# a hook function to print some message before bumping the version number.
-function pre_version_message() {
+# a hook function that prints a message before updating the version.
+pre_version_message() {
   echo 'Please make sure that CHANGELOG.md is up-to-date.'
   echo 'You can use the output of the following command:'
   echo
-  echo "  git-chglog --next-tag $v$2"
+  echo "  git cliff --unreleased --tag $v$2"
   echo
 }
 
 # get_current_version: prints the current version.
-function get_current_version() {
-  poetry version -s
+get_current_version() {
+  uv version --short
 }
 
 # get_next_version <current_version_number>: prints the next version.
-function get_next_version() {
-  local next_version
-  poetry version patch >/dev/null
-  next_version=$(poetry version -s)
-  git restore pyproject.toml
-  echo "$next_version"
+get_next_version() {
+  uv version --short --dry-run --bump stable
 }
 
-# get_next_dev_version <current_version_number> <next_version_number>: prints the next dev-version.
-function get_next_dev_version() {
-  local next_dev_version
-  poetry version "$2" >/dev/null
-  poetry version prepatch >/dev/null
-  next_dev_version=$(poetry version -s)
-  git restore pyproject.toml
-  echo "$next_dev_version"
+# get_next_dev_version <current_version_number> <next_version_number>:
+# prints the next development version.
+get_next_dev_version() (
+  local tmpdir
+  tmpdir=$(mktemp -d)
+  tmpdir=$(CDPATH='' cd -- "$tmpdir" && pwd)
+  trap 'rm -rf -- "$tmpdir"' EXIT
+  cp pyproject.toml "$tmpdir/"
+  cd "$tmpdir"
+  uv version --frozen -- "$2" >/dev/null
+  if [[ $2 == *rc* ]]; then
+    local next_rc
+    next_rc=$(uv version --short --dry-run --bump rc)
+    echo "${next_rc}.dev1"
+  else
+    uv version --short --dry-run --bump patch --bump dev
+  fi
+)
+
+# canonicalize_version <version_number>: prints the canonicalized version.
+canonicalize_version() {
+  uv version --short --dry-run -- "$1"
 }
 
-# version_bump <version_number>: a hook function to bump the version for documents.
-function version_bump() {
+# version_bump <version_number>: sets the release version.
+version_bump() {
   dev_version_bump "$1"
 }
 
-# dev_version_bump <dev_version_number>: a hook function to bump the version for code.
-function dev_version_bump() {
-  poetry version "$1"
+# dev_version_bump <dev_version_number>: sets the development version.
+dev_version_bump() {
+  uv version "$1"
 }
 
-##
+# release_commit_message <version_number>: generates the release commit message.
+release_commit_message() {
+  echo "chore(release): $1"
+}
+
+# dev_commit_message <dev_version_number>: generates the development-version commit message.
+dev_commit_message() {
+  echo "chore(version): set version to $1"
+}
+
+### Project-independent logic ###
+
+# spell-checker: ignore numstat, toplevel
+
+# Trap ERR to print a stack trace when a command fails.
+# See: https://gist.github.com/ahendrix/7030300
+_errexit() {
+  local err=$?
+  set +o xtrace
+  local code="${1:-1}"
+  echo "Error in ${BASH_SOURCE[1]}:${BASH_LINENO[0]}: '${BASH_COMMAND}' exited with status $err" >&2
+  # Print a stack trace from $FUNCNAME.
+  if [ ${#FUNCNAME[@]} -gt 2 ]; then
+    echo 'Traceback:' >&2
+    for ((i = 1; i < ${#FUNCNAME[@]} - 1; i++)); do
+      echo "  [$i]: at ${BASH_SOURCE[$i + 1]}:${BASH_LINENO[$i]} in function ${FUNCNAME[$i]}" >&2
+    done
+  fi
+  echo "Exiting with status $code" >&2
+  exit "$code"
+}
+trap '_errexit' ERR
+set -o errtrace
 
 # abort <message>: aborts the program with the given message.
-function abort {
+abort() {
   echo "error: $*" 1>&2
   exit 1
 }
 
-# isclean: checks if the working repository is clean (untracked files are ignored).
-function isclean() {
-  [[ $(git diff --stat) == '' ]] && [[ $(git diff --stat HEAD) == '' ]]
+# is_clean: checks if the working tree is clean (untracked files are ignored).
+is_clean() {
+  git diff --quiet && git diff --cached --quiet
 }
 
-# numstat <file>: prints number of added and deleted lines for the file (e.g., "0,0").
-function numstat() {
-  local stat
-  stat=$(git diff --numstat "$1")
-  if [[ $stat =~ ([0-9]+)[[:blank:]]+([0-9]+) ]]; then
-    echo "${BASH_REMATCH[1]},${BASH_REMATCH[2]}"
+# sed_i: portable implementation of sed -i for GNU and BSD.
+# Usage: sed_i <options...> <script> <file>
+# Note: works only with a single file.
+sed_i() {
+  local file="${!#}"
+  local temp="$file.$$.$RANDOM"
+  if sed "$@" >"$temp"; then
+    mv "$temp" "$file"
   else
-    echo 0,0
+    rm -f "$temp"
+    return 1
   fi
 }
 
-# Require the git command.
+# check_file_changed <file> <expected_added_lines_count> <expected_deleted_lines_count>
+check_file_changed() {
+  local stat added_lines_count deleted_lines_count
+  stat=$(git diff --numstat "$1")
+  if [[ $stat =~ ([0-9]+)[[:blank:]]+([0-9]+) ]]; then
+    added_lines_count="${BASH_REMATCH[1]}"
+    deleted_lines_count="${BASH_REMATCH[2]}"
+  else
+    added_lines_count=0
+    deleted_lines_count=0
+  fi
+  if [[ $added_lines_count != "$2" || $deleted_lines_count != "$3" ]]; then
+    abort "$1 changed unexpectedly: $added_lines_count added, $deleted_lines_count deleted (expected: $2 added, $3 deleted)"
+  fi
+}
+
+# Ensure that the git command is available.
 command -v git >/dev/null || abort 'git not available'
 
-# Stop if the working directory is dirty.
-isclean || abort 'working directory is dirty'
+# Abort if the working tree is dirty.
+is_clean || abort 'working tree is dirty'
 
 # Ensure that we are in the project root.
-cd "$(git rev-parse --show-toplevel)"
+root_dir="$(git rev-parse --show-toplevel)"
+cd -- "$root_dir"
 
 # Determine the current version.
 current_version=$(get_current_version)
-[[ $current_version != '' ]] || abort 'current version not determined'
+[[ -n $current_version ]] || abort 'could not determine current version'
 
 # Determine the next version.
 if [[ $# == 0 ]]; then
   next_version=$(get_next_version "$current_version")
-  [[ $next_version != '' ]] || abort 'next version not determined'
+  [[ -n $next_version ]] || abort 'could not determine next version'
 else
-  next_version=$1
+  next_version=$(canonicalize_version "$1")
+  [[ -n $next_version ]] || abort "could not canonicalize version $1"
 fi
 
-# Determine the next dev-version.
+# Determine the next development version.
 if [[ $# -lt 2 ]]; then
   next_dev_version=$(get_next_dev_version "$current_version" "$next_version")
-  [[ $next_dev_version != '' ]] || abort 'next dev-version not determined'
+  [[ -n $next_dev_version ]] || abort 'could not determine next development version'
 else
-  next_dev_version=$2
+  next_dev_version=$(canonicalize_version "$2")
+  [[ -n $next_dev_version ]] || abort "could not canonicalize version $2"
 fi
 
-# Print the versions and confirm if they are fine.
+# Print the versions.
 pre_version_message "$current_version" "$next_version" "$next_dev_version"
-echo 'This script will bump the version number.'
-echo "  current commit      : $(git rev-parse --short HEAD)"
-echo "  current version     : $current_version"
-echo "  next version        : $next_version"
-echo "  next dev-version    : $next_dev_version"
+current_commit=$(git rev-parse --short HEAD)
+echo 'This script will create a release and bump the development version.'
+echo "  current commit           : $current_commit"
+echo "  current version          : $current_version"
+echo "  next version             : $next_version"
+echo "  next development version : $next_dev_version"
+
+# Abort if the tag exists or its existence cannot be determined.
+if tag_error=$(git show-ref --exists "refs/tags/$v$next_version" 2>&1); then
+  abort "tag already exists: $v$next_version"
+else
+  tag_status=$?
+  [[ $tag_status -eq 2 ]] ||
+    abort "could not check tag $v$next_version (status $tag_status): $tag_error"
+fi
+
+# User confirmation.
 while :; do
-  read -r -p 'ok? (y/N): ' yn
+  read -r -p 'Proceed? (y/N): ' yn
   case "$yn" in
-    [yY]*)
-      break
-      ;;
-    [nN]*)
-      echo 'Aborted' >&2
-      exit 1
-      ;;
-    *)
-      ;;
+  [yY]*)
+    break
+    ;;
+  [nN]*)
+    echo 'Aborted' >&2
+    exit 1
+    ;;
+  *)
+    ;;
   esac
 done
 
-# Bump the version.
+# Create the release and bump the development version.
 version_bump "$next_version"
-git commit -a -m "chore(release): bump version to $next_version"
+msg=$(release_commit_message "$next_version")
+git commit -a -m "$msg"
 git tag "$v$next_version"
 dev_version_bump "$next_dev_version"
-git commit -a -m "chore: bump version to $next_dev_version"
+msg=$(dev_commit_message "$next_dev_version")
+git commit -a -m "$msg"
 
-# Completed. Show some information.
-echo "A release tag $v$next_version was successfully created."
-echo "The current development version is now $next_dev_version"
-echo "To push it to the origin:"
+# Print a completion summary.
+echo "Release tag $v$next_version was successfully created."
+echo "The current development version is now $next_dev_version."
+echo
+echo "To push the release tag to origin:"
 echo "  git push origin $v$next_version"

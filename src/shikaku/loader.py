@@ -10,8 +10,7 @@ import zipfile
 
 @functools.cache
 def _download(url: str) -> bytes:
-    """
-    Return the file contents downloaded from the given URL.
+    """Return the file contents downloaded from the given URL.
 
     Parameters
     ----------
@@ -24,13 +23,17 @@ def _download(url: str) -> bytes:
         Downloaded data.
 
     """
+    if not url.startswith(("http:", "https:")):
+        raise ValueError("URL must start with 'http:' or 'https:'")
+
+    # We need S310 here to suppress false positives.
+    # See: https://github.com/astral-sh/ruff/issues/7918
     with urllib.request.urlopen(url) as f:  # noqa: S310
         return f.read()  # type: ignore[no-any-return]
 
 
 def _remove_annotations(text: str) -> str:
-    """
-    Remove annotations in the text.
+    """Remove annotations in the text.
 
     Parameters
     ----------
@@ -61,8 +64,7 @@ class AozoraBunkoFileWarning(Warning):
 
 
 def load_aozorabunko(author_id: int, work_id: int, *, raw: bool = False) -> str:
-    """
-    Return text downloaded from Aozora Bunko (GitHub mirror).
+    """Return text downloaded from Aozora Bunko (GitHub mirror).
 
     Parameters
     ----------
@@ -88,7 +90,7 @@ def load_aozorabunko(author_id: int, work_id: int, *, raw: bool = False) -> str:
     card_file = f"{author_id:0=6}/card{work_id}.html"
     card = _download(
         "https://raw.githubusercontent.com/aozorabunko/aozorabunko/master/cards/"
-        f"{card_file}"
+        f"{card_file}",
     ).decode("utf-8")
 
     # Search for the ZIP file with ruby text from the library card.
@@ -106,9 +108,9 @@ def load_aozorabunko(author_id: int, work_id: int, *, raw: bool = False) -> str:
             _download(
                 "https://raw.githubusercontent.com/"
                 "aozorabunko/aozorabunko/master/cards/"
-                f"{author_id:0=6}/files/{zipname}"
-            )
-        )
+                f"{author_id:0=6}/files/{zipname}",
+            ),
+        ),
     )
 
     # Find text files in the ZIP file.

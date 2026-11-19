@@ -3,7 +3,7 @@
 import random
 import re
 import types
-from typing import Any, Optional
+from typing import Any
 
 import igraph as ig
 import markovify
@@ -12,10 +12,11 @@ import matplotlib.pyplot as plt
 import MeCab
 from markovify.chain import BEGIN, END
 
+# cspell:ignore -Owakati  # noqa: ERA001
+
 
 def _preprocess_text(text: str) -> list[str]:
-    """
-    Preprocess the text.
+    """Preprocess the text.
 
     Parameters
     ----------
@@ -69,7 +70,9 @@ def _preprocess_text(text: str) -> list[str]:
             # "...「...」...。..." -> "..."
             while True:
                 line1 = re.sub(
-                    "^[^「」]*「[^「」]*」[^「」。！？!?]*[。！？!?]+", "", line
+                    "^[^「」]*「[^「」]*」[^「」。！？!?]*[。！？!?]+",
+                    "",
+                    line,
                 )
                 if line1 != line:
                     line = line1.strip()
@@ -123,8 +126,7 @@ class TextModel:
     """Text generation model by Markov chain."""
 
     def __init__(self, state_size: int = 2) -> None:
-        """
-        Construct a text generation model.
+        """Construct a text generation model.
 
         Parameters
         ----------
@@ -133,12 +135,11 @@ class TextModel:
 
         """
         self._state_size = state_size
-        self._model: Optional[markovify.Text] = None
-        self._compiled_model: Optional[markovify.Text] = None
+        self._model: markovify.Text | None = None
+        self._compiled_model: markovify.Text | None = None
 
     def fit(self, text: str) -> None:
-        """
-        Train the model.
+        """Train the model.
 
         Parameters
         ----------
@@ -148,7 +149,9 @@ class TextModel:
         """
         # Build a model.
         model = markovify.Text(
-            _preprocess_text(text), state_size=self._state_size, well_formed=False
+            _preprocess_text(text),
+            state_size=self._state_size,
+            well_formed=False,
         )
 
         self._model = model
@@ -157,15 +160,14 @@ class TextModel:
     def generate(
         self,
         *,
-        beginning: Optional[str] = None,
-        strict: Optional[bool] = None,
-        tries: Optional[int] = None,
-        min_words: Optional[int] = None,
-        max_words: Optional[int] = None,
-        seed: Optional[int] = None,
-    ) -> Optional[str]:
-        """
-        Generate a sentence.
+        beginning: str | None = None,
+        strict: bool | None = None,
+        tries: int | None = None,
+        min_words: int | None = None,
+        max_words: int | None = None,
+        seed: int | None = None,
+    ) -> str | None:
+        """Generate a sentence.
 
         Parameters
         ----------
@@ -220,14 +222,13 @@ class TextModel:
     def plot(
         self,
         *,
-        width: Optional[float] = None,
-        height: Optional[float] = None,
-        dpi: Optional[int] = None,
-        layout: Optional[str] = None,
-        seed: Optional[int] = None,
+        width: float | None = None,
+        height: float | None = None,
+        dpi: int | None = None,
+        layout: str | None = None,
+        seed: int | None = None,
     ) -> matplotlib.axes.Axes:
-        """
-        Plot the model.
+        """Plot the model.
 
         Parameters
         ----------
@@ -292,7 +293,7 @@ class TextModel:
                 if next_word == END:
                     next_state = ending_state
                 else:
-                    next_state = state[1:] + (next_word,)
+                    next_state = (*state[1:], next_word)
                 traverse(next_state)
                 edges.append((vertices[state], vertices[next_state]))
                 weights.append(weight / total_weight)

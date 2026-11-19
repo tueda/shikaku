@@ -32,3 +32,18 @@ model.fit("吾輩は猫である。名前はまだない。")
 model.plot()
 plt.savefig("model.png")
 ```
+
+## Development
+
+```bash
+# Setup
+uv sync --python 3.13
+uv run task prepare
+
+# Linting and testing
+uv run task lint
+uv run task test
+
+# Release a new version
+./scripts/make-release.sh <new_version>  # e.g., 0.2.5rc1
+```

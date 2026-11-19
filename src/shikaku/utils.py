@@ -2,7 +2,8 @@
 
 import csv
 import re
-from typing import Iterable, NamedTuple, Sequence
+from collections.abc import Iterable, Sequence
+from typing import NamedTuple
 
 import MeCab
 
@@ -19,6 +20,7 @@ def either(strings: Iterable[str]) -> re.Pattern[str]:
     -------
     re.Pattern[str]
         Regular expression pattern.
+
     """
     strings = sorted(strings, key=len, reverse=True)
 
@@ -69,11 +71,7 @@ def either(strings: Iterable[str]) -> re.Pattern[str]:
 
     result2.sort(key=lambda x: (-len(x), x))
 
-    result1 = []
-
-    for s in strings:
-        if len(s) == 1:
-            result1.append(re.escape(s))
+    result1 = [re.escape(s) for s in strings if len(s) == 1]
 
     result1.sort(key=lambda x: (-len(x), x))
     if len(result1) >= 2:
@@ -99,6 +97,8 @@ def _init_to_vowel() -> tuple[dict[int, str], re.Pattern[str], dict[str, str]]:
     to_vowel_table = str.maketrans(to_vowel_map1)
 
     to_vowel_map2 = {}
+
+    # cspell:ignore cyoku-on
 
     for a, s, b in (
         # open yo-on
@@ -152,6 +152,7 @@ def katakana_to_vowels(text: str) -> str:
     -------
     >>> katakana_to_vowels("コンピューター")
     'オンウーアー'
+
     """
     s = re.sub(_to_vowel_re, lambda m: _to_vowel_map[m.group(0)], text)
     return s.translate(_to_vowel_table)
@@ -174,6 +175,7 @@ def count_mora_in_katakana(text: str) -> int:
     -------
     >>> count_mora_in_katakana("コンピューター")
     6
+
     """
     return _count_mora_in_katakana(katakana_to_vowels(text))
 
@@ -185,33 +187,35 @@ def _count_mora_in_katakana(text: str) -> int:
 class Word(NamedTuple):
     """Parsed Word."""
 
+    # cspell:ignore goshu wcost
+
     surface: str
     pos1: str
     pos2: str
     pos3: str
     pos4: str
-    cType: str  # noqa: N815
-    cForm: str  # noqa: N815
-    lForm: str  # noqa: N815
+    cType: str
+    cForm: str
+    lForm: str
     lemma: str
     orth: str
     pron: str
-    orthBase: str  # noqa: N815
-    pronBase: str  # noqa: N815
+    orthBase: str
+    pronBase: str
     goshu: str
-    iType: str  # noqa: N815
-    iForm: str  # noqa: N815
-    fType: str  # noqa: N815
-    fForm: str  # noqa: N815
+    iType: str
+    iForm: str
+    fType: str
+    fForm: str
     kana: str
-    kanaBase: str  # noqa: N815
+    kanaBase: str
     form: str
-    formBase: str  # noqa: N815
-    iConType: str  # noqa: N815
-    fConType: str  # noqa: N815
-    aType: str  # noqa: N815
-    aConType: str  # noqa: N815
-    aModType: str  # noqa: N815
+    formBase: str
+    iConType: str
+    fConType: str
+    aType: str
+    aConType: str
+    aModType: str
     vowels: str
     mora: int
     wcost: int
@@ -235,7 +239,11 @@ def parse(text: str) -> Sequence[Word]:
             mora = _count_mora_in_katakana(vowels)
             wcost = node.wcost
             word = Word(
-                surface, *features, vowels, mora, wcost  # type: ignore[arg-type]
+                surface,
+                *features,
+                vowels,
+                mora,
+                wcost,  # type: ignore[arg-type]
             )  # type: ignore[call-arg]
             result.append(word)
         node = node.next
