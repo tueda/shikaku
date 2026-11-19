@@ -33,7 +33,7 @@ body = """
         {% if commit.links | length > 0 -%}
         (\
             {% for link in commit.links | unique(attribute="href") -%}
-                [{{ link.text }}]({{ link.href }}){% if not loop.last %}, {% endif %}\
+                [{{ link.text }}](https://github.com/{{ remote.github.owner }}/{{ remote.github.repo }}/{{ link.href }}){% if not loop.last %}, {% endif %}\
             {% endfor -%}
         ) \
         {% endif -%}
@@ -86,5 +86,5 @@ tag_pattern = "[0-9].*"
 topo_order = false
 sort_commits = "oldest"
 link_parsers = [
-    { pattern = "#(\\d+)", href = "https://github.com/tueda/shikaku/issues/$1" },
+    { pattern = "#(\\d+)", href = "issues/$1" },
 ]

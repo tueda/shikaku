@@ -38,17 +38,22 @@ get_next_version() {
 
 # get_next_dev_version <current_version_number> <next_version_number>:
 # prints the next development version.
-get_next_dev_version() {
-  local next_dev_version
-  uv version "$2" >/dev/null 2>&1
+get_next_dev_version() {(
+  local tmpdir
+  tmpdir=$(mktemp -d)
+  tmpdir=$(cd -- "$tmpdir" && pwd)
+  trap 'rm -rf -- "$tmpdir"' EXIT
+  cp pyproject.toml "$tmpdir/"
+  cd "$tmpdir"
+  uv version --frozen -- "$2" >/dev/null
   if [[ $2 == *rc* ]]; then
-    next_dev_version="$(uv version --short --dry-run --bump rc).dev1"
+    local next_rc
+    next_rc=$(uv version --short --dry-run --bump rc)
+    echo "${next_rc}.dev1"
   else
-    next_dev_version=$(uv version --short --dry-run --bump patch --bump dev)
+    uv version --short --dry-run --bump patch --bump dev
   fi
-  uv version "$1" >/dev/null 2>&1
-  echo "$next_dev_version"
-}
+)}
 
 # version_bump <version_number>: sets the release version.
 version_bump() {
