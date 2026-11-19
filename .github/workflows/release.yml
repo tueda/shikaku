@@ -15,6 +15,8 @@ jobs:
     steps:
       - name: Checkout the repository
         uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Install uv
         uses: astral-sh/setup-uv@v10.3.3
@@ -22,8 +24,8 @@ jobs:
       - name: Check Tag # SemVer + PEP 440
         id: check-tag
         run: |
-          if [[ ${{ github.ref }} =~ ^refs\/tags\/[0-9]+\.[0-9]+\.[0-9]+(a[0-9]+|b[0-9]+|rc[0-9]+)?(\.post[0-9]+)?(\.dev[0-9]+)?$ ]]; then
-            echo 'match=true' >>$GITHUB_OUTPUT
+          if [[ $GITHUB_REF =~ ^refs\/tags\/[0-9]+\.[0-9]+\.[0-9]+(a[0-9]+|b[0-9]+|rc[0-9]+)?(\.post[0-9]+)?(\.dev[0-9]+)?$ ]]; then
+            echo 'match=true' >>"$GITHUB_OUTPUT"
           fi
 
       - name: Build package

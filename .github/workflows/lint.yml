@@ -16,6 +16,8 @@ jobs:
     steps:
       - name: Checkout the repository
         uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Create requirements.txt
         run: echo 'gitlint' >requirements.txt
@@ -37,6 +39,8 @@ jobs:
     steps:
       - name: Checkout the repository
         uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Set up Python
         uses: actions/setup-python@v7.1.0
