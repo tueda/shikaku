@@ -38,10 +38,10 @@ get_next_version() {
 
 # get_next_dev_version <current_version_number> <next_version_number>:
 # prints the next development version.
-get_next_dev_version() {(
+get_next_dev_version() { (
   local tmpdir
   tmpdir=$(mktemp -d)
-  tmpdir=$(cd -- "$tmpdir" && pwd)
+  tmpdir=$(CDPATH='' cd -- "$tmpdir" && pwd)
   trap 'rm -rf -- "$tmpdir"' EXIT
   cp pyproject.toml "$tmpdir/"
   cd "$tmpdir"
@@ -53,7 +53,7 @@ get_next_dev_version() {(
   else
     uv version --short --dry-run --bump patch --bump dev
   fi
-)}
+); }
 
 # version_bump <version_number>: sets the release version.
 version_bump() {

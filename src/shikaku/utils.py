@@ -98,6 +98,8 @@ def _init_to_vowel() -> tuple[dict[int, str], re.Pattern[str], dict[str, str]]:
 
     to_vowel_map2 = {}
 
+    # cspell:ignore cyoku-on
+
     for a, s, b in (
         # open yo-on
         ("ア", "キシチニヒミリギジヂビヸピ", "ャ"),
@@ -184,6 +186,8 @@ def _count_mora_in_katakana(text: str) -> int:
 
 class Word(NamedTuple):
     """Parsed Word."""
+
+    # cspell:ignore goshu wcost
 
     surface: str
     pos1: str

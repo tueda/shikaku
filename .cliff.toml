@@ -67,18 +67,19 @@ footer = """
 trim = true
 
 [git]
+# cspell:ignore topo_order
 conventional_commits = true
 filter_unconventional = false
 commit_parsers = [
-    { message = "^feat", group = "<!-- 0 --> Added" },
-    { message = "^fix", group = "<!-- 1 --> Fixed" },
-    { message = "^build\\(deps\\): bump actions/", skip = true },
-    { message = "^build\\(deps\\): bump codecov/codecov-action", skip = true },
-    { message = "^chore: bump version", skip = true },
-    { message = "^chore: update copyright year", skip = true },
-    { message = "^chore\\(release\\)", skip = true },
-    { message = "^ci:", skip = true },
-    { message = "^test:", skip = true },
+  { message = "^feat", group = "<!-- 0 --> Added" },
+  { message = "^fix", group = "<!-- 1 --> Fixed" },
+  { message = "^build\\(deps\\): bump actions/", skip = true },
+  { message = "^build\\(deps\\): bump codecov/codecov-action", skip = true },
+  { message = "^chore: update copyright year", skip = true },
+  { message = "^chore\\(release\\)", skip = true },
+  { message = "^chore\\(version\\): set version to ", skip = true },
+  { message = "^ci:", skip = true },
+  { message = "^test:", skip = true },
 ]
 protect_breaking_commits = true
 filter_commits = false
@@ -86,5 +87,5 @@ tag_pattern = "[0-9].*"
 topo_order = false
 sort_commits = "oldest"
 link_parsers = [
-    { pattern = "#(\\d+)", href = "issues/$1" },
+  { pattern = "#(\\d+)", href = "issues/$1" },
 ]

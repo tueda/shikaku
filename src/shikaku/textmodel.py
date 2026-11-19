@@ -12,6 +12,8 @@ import matplotlib.pyplot as plt
 import MeCab
 from markovify.chain import BEGIN, END
 
+# cspell:ignore -Owakati  # noqa: ERA001
+
 
 def _preprocess_text(text: str) -> list[str]:
     """Preprocess the text.

@@ -50,6 +50,8 @@ def test_parse() -> None:
     assert len(a[1].aConType.split(",")) == 3
     assert a[1].vowels == "ア"
 
+    # cspell:ignore Ｃｒｅａｔｉｖｅ Ｃｏｍｍｏｎｓ
+
     a = shikaku.utils.parse("Ｃｒｅａｔｉｖｅ　Ｃｏｍｍｏｎｓ")
     assert len(a) == 3
     assert a[0].surface == "Ｃｒｅａｔｉｖｅ"
