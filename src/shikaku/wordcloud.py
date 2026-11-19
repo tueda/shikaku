@@ -1,7 +1,6 @@
 """Word cloud."""
 
 from dataclasses import dataclass
-from typing import Any, Optional
 
 import matplotlib_fontja
 import MeCab
@@ -15,12 +14,11 @@ class WordCloudResult:
 
     wordcloud: wordcloud.WordCloud
 
-    def _repr_png_(self) -> Any:
+    def _repr_png_(self) -> bytes | None:
         return self.wordcloud.to_image()._repr_png_()
 
     def to_file(self, filename: str) -> None:
-        """
-        Write the word cloud image into the given file.
+        """Write the word cloud image into the given file.
 
         Parameters
         ----------
@@ -31,13 +29,13 @@ class WordCloudResult:
         self.wordcloud.to_file(filename)
 
     def to_image(self) -> PIL.Image.Image:
-        """
-        Return the PIL image of the word cloud.
+        """Return the PIL image of the word cloud.
 
         Returns
         -------
         PIL.Image.Image
             Image of the word cloud.
+
         """
         return self.wordcloud.to_image()  # type: ignore[no-any-return]
 
@@ -64,9 +62,8 @@ class WordCloud:
         width: int = 480,
         height: int = 320,
         background_color: str = "white",
-    ):
-        """
-        Construct a word cloud.
+    ) -> None:
+        """Construct a word cloud.
 
         Parameters
         ----------
@@ -76,13 +73,14 @@ class WordCloud:
             Height of the canvas.
         background_color : str, default "white"
             Background color for the word cloud image.
+
         """
         self._width = width
         self._height = height
         self._background_color = background_color
-        self._words: Optional[str] = None
+        self._words: str | None = None
 
-    def _create(self, seed: Optional[int]) -> wordcloud.WordCloud:
+    def _create(self, seed: int | None) -> wordcloud.WordCloud:
         return wordcloud.WordCloud(
             font_path=matplotlib_fontja.get_font_ttf_path(),
             width=self._width,
@@ -92,8 +90,7 @@ class WordCloud:
         )
 
     def fit(self, text: str) -> None:
-        """
-        Train the model.
+        """Train the model.
 
         Parameters
         ----------
@@ -107,10 +104,9 @@ class WordCloud:
 
     def generate(
         self,
-        seed: Optional[int] = None,
+        seed: int | None = None,
     ) -> WordCloudResult:
-        """
-        Generate a word cloud.
+        """Generate a word cloud.
 
         Parameters
         ----------
