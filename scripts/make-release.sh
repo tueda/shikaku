@@ -7,9 +7,10 @@
 #   make-release.sh NEW-VERSION
 #   make-release.sh NEW-VERSION NEW-DEV-VERSION
 #
-# Project-independent script core version: 2026.05.23
+# Project-independent script core version: 2026.11.20
 #
 set -euo pipefail
+shopt -s inherit_errexit
 
 ### Project-specific configuration ###
 
@@ -38,7 +39,7 @@ get_next_version() {
 
 # get_next_dev_version <current_version_number> <next_version_number>:
 # prints the next development version.
-get_next_dev_version() { (
+get_next_dev_version() (
   local tmpdir
   tmpdir=$(mktemp -d)
   tmpdir=$(CDPATH='' cd -- "$tmpdir" && pwd)
@@ -53,7 +54,12 @@ get_next_dev_version() { (
   else
     uv version --short --dry-run --bump patch --bump dev
   fi
-); }
+)
+
+# canonicalize_version <version_number>: prints the canonicalized version.
+canonicalize_version() {
+  uv version --short --dry-run -- "$1"
+}
 
 # version_bump <version_number>: sets the release version.
 version_bump() {
@@ -93,8 +99,8 @@ _errexit() {
       echo "  [$i]: at ${BASH_SOURCE[$i + 1]}:${BASH_LINENO[$i]} in function ${FUNCNAME[$i]}" >&2
     done
   fi
-  echo "Exiting with status ${code}" >&2
-  exit "${code}"
+  echo "Exiting with status $code" >&2
+  exit "$code"
 }
 trap '_errexit' ERR
 set -o errtrace
@@ -147,7 +153,8 @@ command -v git >/dev/null || abort 'git not available'
 is_clean || abort 'working tree is dirty'
 
 # Ensure that we are in the project root.
-cd "$(git rev-parse --show-toplevel)"
+root_dir="$(git rev-parse --show-toplevel)"
+cd -- "$root_dir"
 
 # Determine the current version.
 current_version=$(get_current_version)
@@ -158,7 +165,8 @@ if [[ $# == 0 ]]; then
   next_version=$(get_next_version "$current_version")
   [[ -n $next_version ]] || abort 'could not determine next version'
 else
-  next_version=$1
+  next_version=$(canonicalize_version "$1")
+  [[ -n $next_version ]] || abort "could not canonicalize version $1"
 fi
 
 # Determine the next development version.
@@ -166,20 +174,26 @@ if [[ $# -lt 2 ]]; then
   next_dev_version=$(get_next_dev_version "$current_version" "$next_version")
   [[ -n $next_dev_version ]] || abort 'could not determine next development version'
 else
-  next_dev_version=$2
+  next_dev_version=$(canonicalize_version "$2")
+  [[ -n $next_dev_version ]] || abort "could not canonicalize version $2"
 fi
 
 # Print the versions.
 pre_version_message "$current_version" "$next_version" "$next_dev_version"
+current_commit=$(git rev-parse --short HEAD)
 echo 'This script will create a release and bump the development version.'
-echo "  current commit           : $(git rev-parse --short HEAD)"
+echo "  current commit           : $current_commit"
 echo "  current version          : $current_version"
 echo "  next version             : $next_version"
 echo "  next development version : $next_dev_version"
 
-# Abort if the next version tag already exists.
-if git rev-parse -q --verify "refs/tags/$v$next_version" >/dev/null; then
+# Abort if the tag exists or its existence cannot be determined.
+if tag_error=$(git show-ref --exists "refs/tags/$v$next_version" 2>&1); then
   abort "tag already exists: $v$next_version"
+else
+  tag_status=$?
+  [[ $tag_status -eq 2 ]] ||
+    abort "could not check tag $v$next_version (status $tag_status): $tag_error"
 fi
 
 # User confirmation.
@@ -200,10 +214,12 @@ done
 
 # Create the release and bump the development version.
 version_bump "$next_version"
-git commit -a -m "$(release_commit_message "$next_version")"
+msg=$(release_commit_message "$next_version")
+git commit -a -m "$msg"
 git tag "$v$next_version"
 dev_version_bump "$next_dev_version"
-git commit -a -m "$(dev_commit_message "$next_dev_version")"
+msg=$(dev_commit_message "$next_dev_version")
+git commit -a -m "$msg"
 
 # Print a completion summary.
 echo "Release tag $v$next_version was successfully created."
