@@ -1,40 +1,100 @@
-[tool.poetry]
+[build-system]
+build-backend = "uv_build"
+requires = [ "uv-build>=0.13.8,<0.14" ]
+
+[project]
 name = "shikaku"
 version = "0.2.5a0"
 description = "Toolbox for Japanese text."
-authors = ["Takahiro Ueda <t.ueda.od@juntendo.ac.jp>"]
-license = "MIT"
 readme = "README.md"
-repository = "https://github.com/tueda/shikaku"
-keywords = ["japanese", "text-generation", "markov-chain", "word-cloud"]
+keywords = [ "japanese", "markov-chain", "text-generation", "word-cloud" ]
+license = "MIT"
+license-files = [ "LICENSE" ]
+authors = [
+    { name = "Takahiro Ueda", email = "t.ueda.od@juntendo.ac.jp" },
+]
+requires-python = ">=3.10"
 classifiers = [
     "Development Status :: 4 - Beta",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Topic :: Text Processing :: Linguistic",
 ]
+dependencies = [
+    "igraph>=1.0.0",
+    "markovify>=0.9.4",
+    "matplotlib>=3.10.9",
+    "matplotlib-fontja>=1.1.0",
+    "mecab-python3>=1.0.12",
+    "unidic-lite>=1.0.8",
+    "wordcloud>=1.9.6",
+]
+urls.repository = "https://github.com/tueda/shikaku"
 
-[tool.poetry.dependencies]
-python = "^3.10"
+[dependency-groups]
+dev = [
+    "prek>=0.5.11",
+    "pytest>=9.2.0",
+    "pytest-cov>=7.1",
+    "taskipy>=1.14.1",
+]
 
-igraph = "^0.11.2"
-markovify = "^0.9.4"
-matplotlib = "^3.7.1"
-matplotlib-fontja = "^1.0.0"
-mecab-python3 = "^1.0.8"
-unidic-lite = "^1.0.8"
-wordcloud = "^1.9.2"
+[tool.ruff]
+target-version = "py310"
+lint.select = [
+    "ALL",
+]
+lint.ignore = [
+    "ARG001",  # unused-function-argument, for now
+    "C901",    # complex-structure, for now
+    "CPY001",  # missing-copyright-notice
+    "D203",    # one-blank-line-before-class, incompatible with D211
+    "D213",    # multi-line-summary-second-line, incompatible with D212
+    "EM101",   # raw-string-in-exception, for now
+    "EM102",   # f-string-in-exception, for now
+    "FIX",     # for now
+    "N815",    # mixed-case-variable-in-class-scope, for now
+    "PLR0912", # too-many-branches, for now
+    "PLR0913", # too-many-arguments, for now
+    "PLR2004", # magic-value-comparison
+    "PLW2901", # redefined-loop-name, for now
+    "RET504",  # unnecessary-assign, for now
+    "RUF001",  # ambiguous-unicode-character-string, we allowfull-width characters
+    "RUF003",  # ambiguous-unicode-character-comment, we allow full-width characters
+    "TD",      # for now
+    "TRY003",  # raise-vanilla-args, for now
+]
+lint.per-file-ignores."test_*.py" = [
+    "D",
+    "S101",   # assert, we allow them in tests
+    "SLF001", # private-member-access, we test private methods
+]
+lint.per-file-ignores."tests/__init__.py" = [
+    "D104", # undocumented-public-package, this is an empty file
+]
 
-[tool.poetry.group.dev.dependencies]
-pre-commit = "^3.5.0"
-pytest = "^7.4.3"
-pytest-cov = "^4.1.0"
-taskipy = "^1.12.0"
+[tool.pyproject-fmt]
+indent = 4
+keep_full_version = true
+max_supported_python = "3.14"
 
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+[tool.pytest]
+ini_options.addopts = [
+    "--cov-report=html",
+    "--cov-report=term",
+    "--cov=src/shikaku",
+    "--doctest-modules",
+]
+ini_options.filterwarnings = [
+    "ignore:distutils Version classes are deprecated",
+]
 
-[tool.coverage.report]
-exclude_lines = [
+[tool.coverage]
+report.exclude_lines = [
     "@overload",
     "if TYPE_CHECKING:",
     "pragma: no cover",
@@ -42,54 +102,12 @@ exclude_lines = [
     "return NotImplemented",
 ]
 
-[tool.flake8]
-max-line-length = 88
-extend-ignore = [
-    "E203", # for black
-]
-per-file-ignores = [
-    "tests/__init__.py:D104",
-    "tests/test_*.py:D100,D103,S101",
-]
+[tool.taskipy]
+tasks.prepare.cmd = "prek install"
+tasks.prepare.help = "sets up a development environment"
 
-[tool.isort]
-profile = "black"
+tasks.lint.cmd = "prek run --all-files"
+tasks.lint.help = "runs linters (+ fix)"
 
-[tool.mypy]
-pretty = true
-show_error_codes = true
-strict = true
-warn_unreachable = true
-
-[[tool.mypy.overrides]]
-module = [
-    "igraph",
-    "markovify.*",
-    "markovify",
-    "matplotlib_fontja",
-    "matplotlib.*",
-    "MeCab",
-    "wordcloud",
-]
-ignore_missing_imports = true
-
-[tool.pytest.ini_options]
-addopts = [
-    "--cov-report=html",
-    "--cov-report=term",
-    "--cov=shikaku",
-    "--doctest-modules",
-]
-filterwarnings = [
-    "ignore:distutils Version classes are deprecated",
-]
-
-[tool.taskipy.tasks]
-prepare.cmd = "pre-commit install"
-prepare.help = "sets up a development environment"
-
-lint.cmd = "pre-commit run --all-files"
-lint.help = "runs linters (+ fix)"
-
-test.cmd  = "pytest"
-test.help = "run tests"
+tasks.test.cmd = "pytest"
+tasks.test.help = "run tests"
