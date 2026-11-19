@@ -63,7 +63,7 @@ lint.ignore = [
   "PLR2004", # magic-value-comparison
   "PLW2901", # redefined-loop-name, for now
   "RET504",  # unnecessary-assign, for now
-  "RUF001",  # ambiguous-unicode-character-string, we allowfull-width characters
+  "RUF001",  # ambiguous-unicode-character-string, we allow full-width characters
   "RUF003",  # ambiguous-unicode-character-comment, we allow full-width characters
   "TD",      # for now
   "TRY003",  # raise-vanilla-args, for now
