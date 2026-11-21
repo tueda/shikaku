@@ -2,13 +2,123 @@ name: Release
 
 on:
   push:
+    paths-ignore:
+      - .pre-commit-config.yaml
   pull_request:
+    paths-ignore:
+      - .pre-commit-config.yaml
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
-  release:
+  # Check whether the current Git ref is a MAJOR.MINOR.PATCH release tag
+  # with optional PEP 440 suffixes (aN/bN/rcN, .postN, .devN).
+  # Expose `is-release` as `true` or `false`. For release tags, also expose
+  # `is-pre-release`, `is-post-release`, and the tag name as `version`.
+  check-tag:
+    runs-on: ubuntu-slim
+    outputs:
+      is-release: ${{ steps.check-tag.outputs.is-release }}
+      is-pre-release: ${{ steps.check-tag.outputs.is-pre-release }}
+      is-post-release: ${{ steps.check-tag.outputs.is-post-release }}
+      version: ${{ steps.check-tag.outputs.version }}
+    steps:
+      - name: Check Tag
+        id: check-tag
+        env:
+          REF_TYPE: ${{ github.ref_type }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          if [[ "$REF_TYPE" == 'tag' &&
+              "$TAG" =~ ^[0-9]+\.[0-9]+\.[0-9]+(a[0-9]+|b[0-9]+|rc[0-9]+)?(\.post[0-9]+)?(\.dev[0-9]+)?$ ]]; then
+            echo 'is-release=true' >>"$GITHUB_OUTPUT"
+            if [[ "$TAG" =~ (a|b|rc)[0-9]+|\.dev[0-9]+ ]]; then
+              echo 'is-pre-release=true' >>"$GITHUB_OUTPUT"
+            else
+              echo 'is-pre-release=false' >>"$GITHUB_OUTPUT"
+            fi
+            if [[ "$TAG" =~ \.post[0-9]+ ]]; then
+              echo 'is-post-release=true' >>"$GITHUB_OUTPUT"
+            else
+              echo 'is-post-release=false' >>"$GITHUB_OUTPUT"
+            fi
+            echo "version=$TAG" >>"$GITHUB_OUTPUT"
+          else
+            echo 'is-release=false' >>"$GITHUB_OUTPUT"
+          fi
+
+  # Generate release notes from the latest changelog entry and upload them
+  # as an artifact. Expose the entry's version as the `version` job output.
+  generate-release-notes:
+    runs-on: ubuntu-slim
+    outputs:
+      version: ${{ steps.release-notes.outputs.version }}
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+
+      # spell-checker: ignore taiki-e
+
+      - name: Install parse-changelog
+        uses: taiki-e/install-action@parse-changelog
+
+      - name: Generate release notes
+        id: release-notes
+        run: |
+          ./scripts/generate-release-notes.sh --pep >release-notes.md
+          version=$(./scripts/generate-release-notes.sh --pep -v)
+          echo "version=$version" >>"$GITHUB_OUTPUT"
+
+      - name: Preview release notes
+        env:
+          NOTES_VERSION: ${{ steps.release-notes.outputs.version }}
+        run: |
+          echo "# $NOTES_VERSION"
+          echo
+          cat release-notes.md
+
+      - name: Upload release notes
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: release-notes
+          path: release-notes.md
+          if-no-files-found: error
+
+  # Check that the latest changelog entry's version matches the release tag.
+  # Skip this check for non-release refs and post-release tags.
+  check-release-notes:
+    needs:
+      - check-tag
+      - generate-release-notes
+    runs-on: ubuntu-slim
+    steps:
+      - name: Check release notes version against the tag
+        if: >
+          needs.check-tag.outputs.is-release == 'true'
+          && needs.check-tag.outputs.is-post-release != 'true'
+        env:
+          VERSION: ${{ needs.check-tag.outputs.version }}
+          NOTES_VERSION: ${{ needs.generate-release-notes.outputs.version }}
+        run: |
+          if [[ "$VERSION" != "$NOTES_VERSION" ]]; then
+            printf '::error title=%s::%s\n' \
+              'Release notes version mismatch' \
+              "Changelog version: $NOTES_VERSION; Tag version: $VERSION"
+            exit 1
+          fi
+
+  # Build the Python package. Publish it to PyPI only for release tags,
+  # including post-release tags.
+  release-pypi:
+    needs:
+      - check-tag
+      - check-release-notes
     runs-on: ubuntu-latest
-    environment: ${{ github.ref_type == 'tag' && 'release' || '' }}
+    environment: ${{ needs.check-tag.outputs.is-release == 'true' && 'release' || '' }}
     permissions:
       contents: read
       id-token: write
@@ -21,16 +131,40 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v10.3.3
 
-      - name: Check Tag # SemVer + PEP 440
-        id: check-tag
-        run: |
-          if [[ $GITHUB_REF =~ ^refs\/tags\/[0-9]+\.[0-9]+\.[0-9]+(a[0-9]+|b[0-9]+|rc[0-9]+)?(\.post[0-9]+)?(\.dev[0-9]+)?$ ]]; then
-            echo 'match=true' >>"$GITHUB_OUTPUT"
-          fi
-
       - name: Build package
         run: uv build
 
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
-        if: steps.check-tag.outputs.match == 'true'
+        if: needs.check-tag.outputs.is-release == 'true'
+
+  # Publish a GitHub release with the checked release notes.
+  # For post-release tags, publish the release without notes.
+  release-github:
+    needs:
+      - check-tag
+      - release-pypi
+    if: needs.check-tag.outputs.is-release == 'true'
+    permissions:
+      contents: write
+    runs-on: ubuntu-slim
+    steps:
+      - name: Download release notes
+        if: needs.check-tag.outputs.is-post-release != 'true'
+        uses: actions/download-artifact@v8.0.2
+        with:
+          name: release-notes
+
+      - name: Create release
+        env:
+          GH_REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+          VERSION: ${{ needs.check-tag.outputs.version }}
+          PRE_RELEASE: ${{ needs.check-tag.outputs.is-pre-release }}
+          POST_RELEASE: ${{ needs.check-tag.outputs.is-post-release }}
+        run: |-
+          args=(--verify-tag --title "$VERSION")
+          [[ "$PRE_RELEASE" == 'true' ]] && args+=(--prerelease)
+          [[ "$POST_RELEASE" != 'true' ]] && args+=(--notes-file release-notes.md)
+          gh release create "$TAG" "${args[@]}"
