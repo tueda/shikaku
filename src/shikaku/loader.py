@@ -64,7 +64,7 @@ class AozoraBunkoFileWarning(Warning):
 
 
 def load_aozorabunko(author_id: int, work_id: int, *, raw: bool = False) -> str:
-    """Return text downloaded from Aozora Bunko (GitHub mirror).
+    """Return text downloaded from Aozora Bunko.
 
     Parameters
     ----------
@@ -86,12 +86,27 @@ def load_aozorabunko(author_id: int, work_id: int, *, raw: bool = False) -> str:
     ... # author_id: 35, work_id: 1567 => "Run, Melos!"
 
     """
+    # Use the plain-text mirror for works commonly used in examples.
+    mirror_url = _get_text_mirror(author_id, work_id)
+    if mirror_url:
+        text = _download(mirror_url).decode("shift-jis")
+    else:
+        text = _extract_from_zip(author_id, work_id)
+
+    if not raw:
+        text = _remove_annotations(text)
+
+    return text
+
+
+def _extract_from_zip(
+    author_id: int,
+    work_id: int,
+    prefix: str = "https://www.aozora.gr.jp",
+) -> str:
     # Download the corresponding library card.
     card_file = f"{author_id:0=6}/card{work_id}.html"
-    card = _download(
-        "https://raw.githubusercontent.com/aozorabunko/aozorabunko/master/cards/"
-        f"{card_file}",
-    ).decode("utf-8")
+    card = _download(f"{prefix}/cards/{card_file}").decode("utf-8")
 
     # Search for the ZIP file with ruby text from the library card.
     m = re.search(r"\d+_ruby_\d+\.zip", card)
@@ -104,13 +119,7 @@ def load_aozorabunko(author_id: int, work_id: int, *, raw: bool = False) -> str:
 
     # Download the ZIP file.
     zipdata = zipfile.ZipFile(
-        io.BytesIO(
-            _download(
-                "https://raw.githubusercontent.com/"
-                "aozorabunko/aozorabunko/master/cards/"
-                f"{author_id:0=6}/files/{zipname}",
-            ),
-        ),
+        io.BytesIO(_download(f"{prefix}/cards/{author_id:0=6}/files/{zipname}")),
     )
 
     # Find text files in the ZIP file.
@@ -126,9 +135,40 @@ def load_aozorabunko(author_id: int, work_id: int, *, raw: bool = False) -> str:
     filename = text_filenames[0]
 
     # Extract text from the ZIP file.
-    text = zipdata.read(filename).decode("shift-jis")
+    return zipdata.read(filename).decode("shift-jis")
 
-    if not raw:
-        text = _remove_annotations(text)
 
-    return text
+def _get_text_mirror(author_id: int, work_id: int) -> str | None:
+    key = (author_id, work_id)
+    if key in _aozorabunko_text_cards:
+        return (
+            f"{_aozorabunko_text_prefix}/{author_id:0=6}/files/"
+            f"{_aozorabunko_text_cards[key]}"
+        )
+    return None
+
+
+_aozorabunko_text_prefix = "https://raw.githubusercontent.com/aozorahack/aozorabunko_text/refs/heads/master/cards"
+
+_aozorabunko_text_cards = {
+    # Run, Melos!
+    (35, 1567): "1567_ruby_4948/1567_ruby_4948.txt",
+    # Lemon
+    (74, 424): "424_ruby_19825/424_ruby_19825.txt",
+    # The Wild Pear
+    (81, 472): "472_ruby_654/472_ruby_654.txt",
+    # The Restaurant of Many Orders
+    (81, 1927): "1927_ruby_17835/1927_ruby_17835.txt",
+    # Night on the Galactic Railroad
+    (81, 43737): "43737_ruby_19028/43737_ruby_19028.txt",
+    # The Moon over the Mountain
+    (119, 623): "623_ruby_18352/623_ruby_18352.txt",
+    # Gon, the Little Fox
+    (121, 628): "628_ruby_649/628_ruby_649.txt",
+    # Kokoro  # cspell:disable-line  # noqa: ERA001
+    (148, 773): "773_ruby_5968/773_ruby_5968.txt",
+    # I Am a Cat
+    (148, 789): "789_ruby_5639/789_ruby_5639.txt",
+    # Rashōmon  # cspell:disable-line  # noqa: ERA001
+    (879, 127): "127_ruby_150/127_ruby_150.txt",
+}
