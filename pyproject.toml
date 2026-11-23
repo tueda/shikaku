@@ -4,7 +4,7 @@ requires = [ "uv-build>=0.13.8,<0.14" ]
 
 [project]
 name = "shikaku"
-version = "0.2.5"
+version = "0.2.6.dev1"
 description = "Toolbox for Japanese text."
 readme = "README.md"
 keywords = [ "japanese", "markov-chain", "text-generation", "word-cloud" ]
