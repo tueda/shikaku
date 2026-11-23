@@ -1,5 +1,15 @@
 # Changelog
 
+<a name="0.2.5"></a>
+
+## [0.2.5] (2026-11-23)
+
+### Fixed
+
+- **loader:** Fix Aozora Bunko downloads ([#22](https://github.com/tueda/shikaku/issues/22)) ([5e5ee93](https://github.com/tueda/shikaku/commit/5e5ee93b5ed800bc8f623ea0077e1296d4ce53ce))
+- **loader:** Handle missing notation legends ([#27](https://github.com/tueda/shikaku/issues/27)) ([ed9110b](https://github.com/tueda/shikaku/commit/ed9110b74914d77261699efc8b4bfa797570b4fa))
+
+
 <a name="0.2.4"></a>
 ## [0.2.4] (2025-11-09)
 
@@ -82,6 +92,7 @@
 - First release.
 
 
+[0.2.5]: https://github.com/tueda/shikaku/compare/0.2.4..0.2.5
 [0.2.4]: https://github.com/tueda/shikaku/compare/0.2.3...0.2.4
 [0.2.3]: https://github.com/tueda/shikaku/compare/0.2.2...0.2.3
 [0.2.2]: https://github.com/tueda/shikaku/compare/0.2.1...0.2.2
