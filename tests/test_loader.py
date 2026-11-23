@@ -51,6 +51,34 @@ def test_remove_annotations() -> None:
     assert shikaku.loader._remove_annotations(s1) == s2
 
 
+def test_remove_annotations_without_legend() -> None:
+    s1 = """\
+題名
+著者名
+
+　遠回りをしなければ、そのぶん早く着く。
+
+底本：「書籍名」
+底本の親本：「書籍名」
+"""
+    s2 = """遠回りをしなければ、そのぶん早く着く。"""
+    assert shikaku.loader._remove_annotations(s1) == s2
+
+
+def test_remove_annotations_without_source_edition() -> None:
+    s1 = """\
+題名
+著者名
+
+　裏を返せば、それは表だ。
+
+［＃本文終わり］
+終わりの始まり。
+"""
+    s2 = """裏を返せば、それは表だ。"""
+    assert shikaku.loader._remove_annotations(s1) == s2
+
+
 def test_load_aozorabunko_from_zip(mock_urlopen: Mock) -> None:
     card_html = b'<a href="./files/999999_ruby_9999.zip">999999_ruby_9999.zip</a>.zip'
     text = "走れメロス"

@@ -46,13 +46,18 @@ def _remove_annotations(text: str) -> str:
         Processed text.
 
     """
-    text = re.split(r"\-{5,}", text)[2]  # remove header
-    text = re.split("底本：", text)[0]  # remove footer
-    text = re.sub("｜", "", text)  # beginning of string with ruby
-    text = re.sub("《.+?》", "", text)  # ruby
-    text = re.sub("［＃.+?］", "", text)  # comments by staff
-    text = text.strip()
-    return text
+    # Remove the opening metadata.
+    text = re.split(r"(?m)^[^\S\r\n]*\r?\n", text, maxsplit=1)[-1]
+    # Remove the optional notation legend.
+    text = re.split(r"(?m)^\-{5,}", text, maxsplit=2)[-1]
+    # Remove the footer.
+    text = re.split(r"(?m)^(?:底本：|［＃本文終わり］)", text, maxsplit=1)[0]
+    # Remove ruby annotations.
+    text = re.sub("｜", "", text)
+    text = re.sub("《.+?》", "", text)
+    # Remove transcriber annotations.
+    text = re.sub("［＃.+?］", "", text)
+    return text.strip()
 
 
 class AozoraBunkoFileError(ValueError):
