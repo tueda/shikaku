@@ -45,7 +45,7 @@ repos:
     rev: v1.11.3
     hooks:
       - id: tombi-format
-        exclude: '^pyproject\.toml$'
+        exclude: '^(pyproject\.toml|uv\.lock)$'
       - id: tombi-lint
 
   - repo: https://github.com/google/yamlfmt
