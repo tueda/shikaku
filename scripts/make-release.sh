@@ -7,8 +7,6 @@
 #   make-release.sh NEW-VERSION
 #   make-release.sh NEW-VERSION NEW-DEV-VERSION
 #
-# Project-independent script core version: 2026.11.20
-#
 set -euo pipefail
 shopt -s inherit_errexit
 
@@ -188,12 +186,10 @@ echo "  next version             : $next_version"
 echo "  next development version : $next_dev_version"
 
 # Abort if the tag exists or its existence cannot be determined.
-if tag_error=$(git show-ref --exists "refs/tags/$v$next_version" 2>&1); then
-  abort "tag already exists: $v$next_version"
+if tag_list=$(git tag --list "$v$next_version"); then
+  [[ -z $tag_list ]] || abort "tag already exists: $v$next_version"
 else
-  tag_status=$?
-  [[ $tag_status -eq 2 ]] ||
-    abort "could not check tag $v$next_version (status $tag_status): $tag_error"
+  abort "could not check tag $v$next_version"
 fi
 
 # User confirmation.
