@@ -4,6 +4,8 @@
 
 ## [0.2.5] (2026-11-23)
 
+- Officially support Python 3.13 and 3.14.
+
 ### Fixed
 
 - Fix Aozora Bunko downloads. ([#26](https://github.com/tueda/shikaku/pull/26))
