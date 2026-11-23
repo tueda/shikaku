@@ -1652,7 +1652,7 @@ wheels = [
 
 [[package]]
 name = "shikaku"
-version = "0.2.5a0"
+version = "0.2.5"
 source = { editable = "." }
 dependencies = [
     { name = "igraph" },
